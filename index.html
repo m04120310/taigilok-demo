@@ -3,9 +3,115 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Taigilok QR Demo</title>
+  <title>Taigilok Demo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      padding: 24px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    #fallback-box {
+      display: none;
+      margin-top: 20px;
+    }
+    ul {
+      padding-left: 1.2em;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
 <body>
-  <p>正在準備開啟內容...</p>
+  <p id="status">Lauching Taigilok App...</p>
+
+  <div id="fallback-box">
+    <ul>
+      <li>
+        1. 閣試一改，點遮 <a id="launch-app" href="#">手動拍開 App</a>
+      </li>
+      <li>
+        2. 直接佇 <a id="yt-link" href="#" target="_blank" rel="noopener noreferrer">Youtube 聽音樂</a>
+      </li>
+      <li>
+        3. 緊來去下載 App 體驗完整功能（App Store 準備中）
+      </li>
+    </ul>
+  </div>
+
+  <script>
+    const YOUTUBE_MAP = {
+      "00": "https://www.youtube.com/watch?v=-uvnZUsjd0A",  // 古錐的囡仔
+      "01": "https://www.youtube.com/watch?v=JNPpTs32VE0",  // 虹
+    };
+    const DEFAULT_YT_URL = "https://www.youtube.com/";
+
+    const params = new URLSearchParams(window.location.search);
+    const rawSongId = params.get("song_id");
+    const songId = rawSongId && rawSongId.trim() !== "" ? rawSongId.trim() : null;
+
+    console.log('rawSongId: ', rawSongId);
+    const schemeUrl = songId
+      ? `taigilok-demo://play_song?song_id=${encodeURIComponent(songId)}`
+      : "taigilok-demo://play_song";
+
+    const fallbackUrl = (songId && YOUTUBE_MAP[songId]) || DEFAULT_YT_URL;
+
+    const statusEl = document.getElementById("status");
+    const fallbackBoxEl = document.getElementById("fallback-box");
+    const ytLinkEl = document.getElementById("yt-link");
+    const launchAppEl = document.getElementById("launch-app");
+    ytLinkEl.href = fallbackUrl;
+
+    let fallbackTimer = null;
+    let didLeavePage = false;
+
+    function showFallbackOptions() {
+      if (didLeavePage) return;
+      statusEl.textContent = "若是無自動執行 App，你會使選擇：";
+      fallbackBoxEl.style.display = "block";
+    }
+
+    function markLeftPage() {
+      didLeavePage = true;
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+    }
+
+    function launchExternalApp() {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+      statusEl.textContent = "Launching Taigilok App...";
+      fallbackBoxEl.style.display = "none";
+      window.location.href = schemeUrl;
+
+      if (!didLeavePage) {
+        fallbackTimer = setTimeout(showFallbackOptions, 3000);
+      }
+    }
+
+    launchAppEl.addEventListener("click", (event) => {
+      event.preventDefault();
+      launchExternalApp();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        markLeftPage();
+      }
+    });
+
+    window.addEventListener("pagehide", markLeftPage);
+
+    launchExternalApp();
+    // 1.5 秒後若仍在原頁面，顯示備案選項
+    fallbackTimer = setTimeout(showFallbackOptions, 3000);
+  </script>
 </body>
 </html>
